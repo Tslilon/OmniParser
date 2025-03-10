@@ -31,6 +31,22 @@ conda activate omni
 pip install -r requirements.txt
 ```
 
+### Special Instructions for Apple Silicon Macs (M1/M2/M3)
+
+If you're using an Apple Silicon Mac, PaddleOCR requires a special installation to avoid hanging issues. We've provided a setup script to make this process easy:
+
+```bash
+# Run the special setup script for Apple Silicon
+./setup_apple_silicon.sh
+
+# Afterwards, you can use GPU acceleration with MPS
+./run_gradio_with_gpu.sh
+```
+
+This special setup installs a development version of PaddlePaddle that properly supports Apple Silicon and fixes a known issue where PaddleOCR would hang indefinitely on M1/M2/M3 Macs.
+
+### Model Weights
+
 Ensure you have the V2 weights downloaded in weights folder (ensure caption weights folder is called icon_caption_florence). If not download them with:
 ```
    # download the model checkpoints to local directory OmniParser/weights/

@@ -14,8 +14,11 @@ dill
 accelerate
 timm
 einops==0.8.0
-paddlepaddle
-paddleocr
+# paddlepaddle and paddleocr need special handling for Apple Silicon (M1/M2/M3)
+# For Apple Silicon Macs (M1/M2/M3), install these packages with:
+# python -m pip install paddlepaddle==0.0.0 -f https://www.paddlepaddle.org.cn/whl/mac/cpu/develop.html
+# pip install paddleocr
+paddleocr==2.10.0
 ruff==0.6.7
 pre-commit==3.8.0
 pytest==8.3.3

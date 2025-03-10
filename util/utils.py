@@ -19,11 +19,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 import easyocr
 from paddleocr import PaddleOCR
+
+# Check if we should use GPU (MPS) for PaddleOCR
+use_gpu = os.environ.get('OMNIPARSER_DEVICE', '').lower() == 'mps'
+if use_gpu:
+    print(f"PaddleOCR will use GPU: {use_gpu}")
+
 reader = easyocr.Reader(['en'])
 paddle_ocr = PaddleOCR(
     lang='en',  # other lang also available
     use_angle_cls=False,
-    use_gpu=False,  # using cuda will conflict with pytorch in the same process
+    use_gpu=use_gpu,  # use GPU if environment variable is set
     show_log=False,
     max_batch_size=1024,
     use_dilation=True,  # improves accuracy
