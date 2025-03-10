@@ -12,6 +12,7 @@
 **OmniParser** is a comprehensive method for parsing user interface screenshots into structured and easy-to-understand elements, which significantly enhances the ability of GPT-4V to generate actions that can be accurately grounded in the corresponding regions of the interface. 
 
 ## News
+- [2025/4] Added Mac GPU support via MPS (Metal Performance Shaders) and cross-platform setup scripts.
 - [2025/2] We release OmniParser V2 [checkpoints](https://huggingface.co/microsoft/OmniParser-v2.0). [Watch Video](https://1drv.ms/v/c/650b027c18d5a573/EWXbVESKWo9Buu6OYCwg06wBeoM97C6EOTG6RjvWLEN1Qg?e=alnHGC)
 - [2025/2] We introduce OmniTool: Control a Windows 11 VM with OmniParser + your vision model of choice. OmniTool supports out of the box the following large language models - OpenAI (4o/o1/o3-mini), DeepSeek (R1), Qwen (2.5VL) or Anthropic Computer Use. [Watch Video](https://1drv.ms/v/c/650b027c18d5a573/EehZ7RzY69ZHn-MeQHrnnR4BCj3by-cLLpUVlxMjF4O65Q?e=8LxMgX)
 - [2025/1] V2 is coming. We achieve new state of the art results 39.5% on the new grounding benchmark [Screen Spot Pro](https://github.com/likaixin2000/ScreenSpot-Pro-GUI-Grounding/tree/main) with OmniParser v2 (will be released soon)! Read more details [here](https://github.com/microsoft/OmniParser/tree/master/docs/Evaluation.md).
@@ -48,6 +49,52 @@ python weights/convert_safetensor_to_pt.py
 For v1.5: 
 download 'model_v1_5.pt' from https://huggingface.co/microsoft/OmniParser/tree/main/icon_detect_v1_5, make a new dir: weights/icon_detect_v1_5, and put it inside the folder. No weight conversion is needed. 
 ``` -->
+
+## Mac GPU Support
+
+OmniParser now supports accelerated processing on Apple Silicon Macs using Metal Performance Shaders (MPS). To enable MPS support:
+
+1. Set the environment variable before running:
+   ```bash
+   export OMNIPARSER_DEVICE="mps"
+   ```
+
+2. Or use the provided setup script which automatically configures MPS:
+   ```bash
+   chmod +x start_hybrid_setup.sh
+   ./start_hybrid_setup.sh
+   ```
+
+For detailed instructions on setting up and running OmniParser with Windows VM integration, see [Getting Started Guide](GETTING_STARTED.md).
+
+## Cross-platform Setup
+
+### Mac/Unix Setup
+Use the included setup script to start all necessary services:
+
+```bash
+# Make the script executable
+chmod +x start_hybrid_setup.sh
+
+# Start with default settings (Windows VM at 10.211.55.3:5000)
+./start_hybrid_setup.sh
+
+# Or specify custom Windows VM URL
+./start_hybrid_setup.sh 192.168.1.100:5000
+
+# Use simplified OmniParser (for troubleshooting ML issues)
+./start_hybrid_setup.sh 10.211.55.3:5000 localhost:8000 simple
+```
+
+### Windows VM Setup
+On your Windows VM, use the PowerShell script to set up the server:
+
+```powershell
+# Run the setup script as administrator
+.\windows_setup.ps1
+```
+
+This will start the Flask server on port 5000 and display the VM's IP address, which you'll need to configure on the Mac side.
 
 ## Examples:
 We put together a few simple examples in the demo.ipynb. 
