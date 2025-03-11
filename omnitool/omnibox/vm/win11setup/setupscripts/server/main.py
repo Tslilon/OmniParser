@@ -60,22 +60,53 @@ def execute_command():
                 'message': str(e)
             }), 500
 
-@app.route('/screenshot', methods=['GET'])
+@app.route('/screenshot', methods=['GET', 'OPTIONS'])
 def capture_screen_with_cursor():    
-    cursor_path = os.path.join(os.path.dirname(__file__), "cursor.png")
-    screenshot = pyautogui.screenshot()
-    cursor_x, cursor_y = pyautogui.position()
-    cursor = Image.open(cursor_path)
-    # make the cursor smaller
-    cursor = cursor.resize((int(cursor.width / 1.5), int(cursor.height / 1.5)))
-    screenshot.paste(cursor, (cursor_x, cursor_y), cursor)
+    # Define CORS headers
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    }
     
-
-    # Convert PIL Image to bytes and send
-    img_io = BytesIO()
-    screenshot.save(img_io, 'PNG')
-    img_io.seek(0)
-    return send_file(img_io, mimetype='image/png')
+    # Handle OPTIONS request (CORS preflight)
+    if request.method == 'OPTIONS':
+        return ('', 204, headers)
+    
+    # Handle GET request
+    try:
+        cursor_path = os.path.join(os.path.dirname(__file__), "cursor.png")
+        
+        # Check if cursor file exists
+        if not os.path.exists(cursor_path):
+            logger.warning(f"Cursor image not found at {cursor_path}")
+            # Take screenshot without cursor
+            screenshot = pyautogui.screenshot()
+        else:
+            # Take screenshot with cursor
+            screenshot = pyautogui.screenshot()
+            try:
+                cursor_x, cursor_y = pyautogui.position()
+                cursor = Image.open(cursor_path)
+                # make the cursor smaller
+                cursor = cursor.resize((int(cursor.width / 1.5), int(cursor.height / 1.5)))
+                screenshot.paste(cursor, (cursor_x, cursor_y), cursor)
+            except Exception as e:
+                logger.error(f"Error adding cursor to screenshot: {str(e)}")
+                # Continue with the screenshot without the cursor
+        
+        # Convert PIL Image to bytes and send
+        img_io = BytesIO()
+        screenshot.save(img_io, 'PNG')
+        img_io.seek(0)
+        
+        return send_file(img_io, mimetype='image/png', headers=headers)
+    except Exception as e:
+        logger.error("\n" + traceback.format_exc() + "\n")
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to capture screenshot: {str(e)}'
+        }), 500, headers
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=args.port)

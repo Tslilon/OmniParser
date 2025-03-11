@@ -2,6 +2,7 @@ import base64
 import time
 from enum import StrEnum
 from typing import Literal, TypedDict
+from io import BytesIO
 
 from PIL import Image
 
@@ -88,8 +89,11 @@ class ComputerTool(BaseAnthropicTool):
     def to_params(self) -> BetaToolComputerUse20241022Param:
         return {"name": self.name, "type": self.api_type, **self.options}
 
-    def __init__(self, is_scaling: bool = False):
+    def __init__(self, is_scaling: bool = False, windows_host_url: str = 'localhost:5000'):
         super().__init__()
+
+        # Store the Windows host URL
+        self.windows_host_url = windows_host_url
 
         # Get screen width and height using Windows command
         self.display_num = None
@@ -225,45 +229,44 @@ class ComputerTool(BaseAnthropicTool):
         raise ToolError(f"Invalid action: {action}")
 
     def send_to_vm(self, action: str):
-        """
-        Executes a python command on the server. Only return tuple of x,y when action is "pyautogui.position()"
-        """
-        prefix = "import pyautogui; pyautogui.FAILSAFE = False;"
-        command_list = ["python", "-c", f"{prefix} {action}"]
-        parse = action == "pyautogui.position()"
-        if parse:
-            command_list[-1] = f"{prefix} print({action})"
-
+        """Send action to Windows VM"""
         try:
-            print(f"sending to vm: {command_list}")
             response = requests.post(
-                f"http://localhost:5000/execute", 
+                f"http://{self.windows_host_url}/execute",
                 headers={'Content-Type': 'application/json'},
-                json={"command": command_list},
+                json={"command": ["python", "-c", f"import pyautogui; {action}"]},
                 timeout=90
             )
-            time.sleep(0.7) # avoid async error as actions take time to complete
-            print(f"action executed")
             if response.status_code != 200:
-                raise ToolError(f"Failed to execute command. Status code: {response.status_code}")
-            if parse:
-                output = response.json()['output'].strip()
-                match = re.search(r'Point\(x=(\d+),\s*y=(\d+)\)', output)
-                if not match:
-                    raise ToolError(f"Could not parse coordinates from output: {output}")
-                x, y = map(int, match.groups())
-                return x, y
+                error_msg = f"An error occurred while sending action to VM: {response.status_code}"
+                print(error_msg)
+                return None, error_msg
+            
+            return response, None
         except requests.exceptions.RequestException as e:
-            raise ToolError(f"An error occurred while trying to execute the command: {str(e)}")
+            error_msg = f"An error occurred while sending action to VM: {str(e)}"
+            print(error_msg)
+            return None, error_msg
 
     async def screenshot(self):
-        if not hasattr(self, 'target_dimension'):
-            screenshot = self.padding_image(screenshot)
-            self.target_dimension = MAX_SCALING_TARGETS["WXGA"]
-        width, height = self.target_dimension["width"], self.target_dimension["height"]
-        screenshot, path = get_screenshot(resize=True, target_width=width, target_height=height)
-        time.sleep(0.7) # avoid async error as actions take time to complete
-        return ToolResult(base64_image=base64.b64encode(path.read_bytes()).decode())
+        """Take a screenshot of the Windows screen."""
+        try:
+            response = requests.get(f"http://{self.windows_host_url}/screenshot")
+            if response.status_code != 200:
+                return None, f"Failed to take screenshot. Status code: {response.status_code}"
+            
+            response_bytes = response.content
+            image = Image.open(BytesIO(response_bytes))
+            
+            if self.is_scaling:
+                return image, None
+            
+            image = self.padding_image(image)
+            return image, None
+        except requests.exceptions.RequestException as e:
+            error_msg = f"An error occurred while taking screenshot: {str(e)}"
+            print(error_msg)
+            return None, error_msg
 
     def padding_image(self, screenshot):
         """Pad the screenshot to 16:10 aspect ratio, when the aspect ratio is not 16:10."""
@@ -308,22 +311,28 @@ class ComputerTool(BaseAnthropicTool):
         return round(x * x_scaling_factor), round(y * y_scaling_factor)
 
     def get_screen_size(self):
-        """Return width and height of the screen"""
         try:
+            # First try to get the screen size from the VM host
             response = requests.post(
-                f"http://localhost:5000/execute",
+                f'http://{self.windows_host_url}/execute',
                 headers={'Content-Type': 'application/json'},
                 json={"command": ["python", "-c", "import pyautogui; print(pyautogui.size())"]},
                 timeout=90
             )
             if response.status_code != 200:
-                raise ToolError(f"Failed to get screen size. Status code: {response.status_code}")
+                print(f"Warning: Failed to get screen size from VM. Status code: {response.status_code}")
+                print("Using default screen size of 1920x1080")
+                return 1920, 1080  # Default fallback size
             
             output = response.json()['output'].strip()
             match = re.search(r'Size\(width=(\d+),\s*height=(\d+)\)', output)
             if not match:
-                raise ToolError(f"Could not parse screen size from output: {output}")
+                print(f"Warning: Could not parse screen size from output: {output}")
+                print("Using default screen size of 1920x1080")
+                return 1920, 1080  # Default fallback size
             width, height = map(int, match.groups())
             return width, height
         except requests.exceptions.RequestException as e:
-            raise ToolError(f"An error occurred while trying to get screen size: {str(e)}")
+            print(f"Warning: An error occurred while trying to get screen size: {str(e)}")
+            print("Using default screen size of 1920x1080")
+            return 1920, 1080  # Default fallback size

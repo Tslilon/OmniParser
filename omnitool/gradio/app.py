@@ -23,6 +23,21 @@ import requests
 from requests.exceptions import RequestException
 import base64
 
+# Load API key from .env file in project root
+try:
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+    if os.path.exists(env_path):
+        print(f"Loading API key from {env_path}")
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+                    print(f"Loaded environment variable: {key}")
+except Exception as e:
+    print(f"Error loading .env file: {e}")
+
 CONFIG_DIR = Path("~/.anthropic").expanduser()
 API_KEY_FILE = CONFIG_DIR / "api_key"
 
@@ -59,7 +74,8 @@ def setup_state(state):
     if "anthropic_api_key" not in state:
         state["anthropic_api_key"] = os.getenv("ANTHROPIC_API_KEY", "")
     if "api_key" not in state:
-        state["api_key"] = ""
+        # Initialize api_key with the openai_api_key since that's the default provider
+        state["api_key"] = state.get("openai_api_key", "")
     if "auth_validated" not in state:
         state["auth_validated"] = False
     if "responses" not in state:
@@ -152,13 +168,20 @@ def chatbot_output_callback(message, chatbot_state, hide_images=False, sender="b
             message = cast(ToolResult, message)
             if message.output:
                 return message.output
-            if message.error:
+            if hasattr(message, "error") and message.error:
                 return f"Error: {message.error}"
-            if message.base64_image and not hide_images:
-                # somehow can't display via gr.Image
-                # image_data = base64.b64decode(message.base64_image)
+            if hasattr(message, "base64_image") and message.base64_image:
+                # Display the screenshot directly in the chat
+                html = f'<div style="margin-bottom: 10px;"><strong>Screenshot:</strong></div>'
+                html += f'<img src="data:image/png;base64,{message.base64_image}" style="max-width: 100%; border: 1px solid #ccc; margin-bottom: 10px;"/>'
+                
+                # If there's also a SOM image, show that too
+                if hasattr(message, "som_image_base64") and message.som_image_base64:
+                    html += f'<div style="margin: 10px 0;"><strong>Analysis Overlay:</strong></div>'
+                    html += f'<img src="data:image/png;base64,{message.som_image_base64}" style="max-width: 100%; border: 1px solid #ccc;"/>'
+                
+                return html
                 # return gr.Image(value=Image.open(io.BytesIO(image_data)))
-                return f'<img src="data:image/png;base64,{message.base64_image}">'
 
         elif isinstance(message, BetaTextBlock) or isinstance(message, TextBlock):
             return f"Analysis: {message.text}"
@@ -190,7 +213,7 @@ def valid_params(user_input, state):
     """Validate all requirements and return a list of error messages."""
     errors = []
     
-    for server_name, url in [('Windows Host', 'localhost:5000'), ('OmniParser Server', args.omniparser_server_url)]:
+    for server_name, url in [('Windows Host', args.windows_host_url), ('OmniParser Server', args.omniparser_server_url)]:
         try:
             url = f'http://{url}/probe'
             response = requests.get(url, timeout=3)
@@ -242,7 +265,8 @@ def process_input(user_input, state):
         api_key=state["api_key"],
         only_n_most_recent_images=state["only_n_most_recent_images"],
         max_tokens=16384,
-        omniparser_url=args.omniparser_server_url
+        omniparser_url=args.omniparser_server_url,
+        windows_host_url=args.windows_host_url
     ):  
         if loop_msg is None or state.get("stop"):
             yield state['chatbot_messages']
@@ -284,7 +308,10 @@ with gr.Blocks(theme=gr.themes.Default()) as demo:
     """)
     state = gr.State({})
     
-    setup_state(state.value)
+    # Initialize the state with default values
+    initial_state = {}
+    setup_state(initial_state)
+    state = gr.State(initial_state)
     
     header_image = get_header_image_base64()
     if header_image:
@@ -327,7 +354,7 @@ with gr.Blocks(theme=gr.themes.Default()) as demo:
                 api_key = gr.Textbox(
                     label="API Key",
                     type="password",
-                    value=state.value.get("api_key", ""),
+                    value=initial_state.get("api_key", ""),  # Use the initial_state instead of os.getenv directly
                     placeholder="Paste your API key here",
                     interactive=True,
                 )

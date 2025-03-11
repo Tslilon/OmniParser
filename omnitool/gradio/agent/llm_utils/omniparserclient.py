@@ -19,18 +19,35 @@ class OmniParserClient:
         image_base64 = encode_image(screenshot_path)
         response = requests.post(self.url, json={"base64_image": image_base64})
         response_json = response.json()
-        print('omniparser latency:', response_json['latency'])
-
-        som_image_data = base64.b64decode(response_json['som_image_base64'])
-        screenshot_path_uuid = Path(screenshot_path).stem.replace("screenshot_", "")
-        som_screenshot_path = f"{OUTPUT_DIR}/screenshot_som_{screenshot_path_uuid}.png"
-        with open(som_screenshot_path, "wb") as f:
-            f.write(som_image_data)
         
+        # Print latency if available
+        if 'latency' in response_json:
+            print('omniparser latency:', response_json['latency'])
+        else:
+            print('omniparser latency: not available')
+
+        # Handle missing som_image_base64 (might happen with simplified server)
+        if 'som_image_base64' in response_json:
+            som_image_data = base64.b64decode(response_json['som_image_base64'])
+            screenshot_path_uuid = Path(screenshot_path).stem.replace("screenshot_", "")
+            som_screenshot_path = f"{OUTPUT_DIR}/screenshot_som_{screenshot_path_uuid}.png"
+            with open(som_screenshot_path, "wb") as f:
+                f.write(som_image_data)
+        else:
+            print('Warning: som_image_base64 not found in response')
+        
+        # Add additional fields
         response_json['width'] = screenshot.size[0]
         response_json['height'] = screenshot.size[1]
         response_json['original_screenshot_base64'] = image_base64
-        response_json['screenshot_uuid'] = screenshot_path_uuid
+        response_json['screenshot_uuid'] = Path(screenshot_path).stem.replace("screenshot_", "")
+        
+        # Make sure parsed_content_list exists
+        if 'parsed_content_list' not in response_json:
+            print('Warning: parsed_content_list not found in response, creating empty list')
+            response_json['parsed_content_list'] = []
+            
+        # Reformat messages
         response_json = self.reformat_messages(response_json)
         return response_json
     

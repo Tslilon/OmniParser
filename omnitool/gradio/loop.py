@@ -47,13 +47,17 @@ def sampling_loop_sync(
     api_key: str,
     only_n_most_recent_images: int | None = 2,
     max_tokens: int = 4096,
-    omniparser_url: str
+    omniparser_url: str,
+    windows_host_url: str = 'localhost:5000'
 ):
     """
     Synchronous agentic sampling loop for the assistant/tool interaction of computer use.
     """
     print('in sampling_loop_sync, model:', model)
-    omniparser_client = OmniParserClient(url=f"http://{omniparser_url}/parse/")
+    omniparser_client = OmniParserClient(
+        url=f"http://{omniparser_url}/parse/",
+        windows_host_url=windows_host_url
+    )
     if model == "claude-3-5-sonnet-20241022":
         # Register Actor and Executor
         actor = AnthropicActor(
@@ -79,6 +83,7 @@ def sampling_loop_sync(
     executor = AnthropicExecutor(
         output_callback=output_callback,
         tool_output_callback=tool_output_callback,
+        windows_host_url=windows_host_url
     )
     print(f"Model Inited: {model}, Provider: {provider}")
     

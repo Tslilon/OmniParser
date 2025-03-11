@@ -14,11 +14,11 @@ def get_screenshot(resize: bool = False, target_width: int = 1920, target_height
     path = output_dir / f"screenshot_{uuid4().hex}.png"
     
     try:
+        print(f"Attempting to capture screenshot from Windows VM at {windows_host_url}...")
         response = requests.get(f'http://{windows_host_url}/screenshot')
         if response.status_code != 200:
             raise ToolError(f"Failed to capture screenshot: HTTP {response.status_code}")
         
-        # (1280, 800)
         screenshot = Image.open(BytesIO(response.content))
         
         if resize and screenshot.size != (target_width, target_height):

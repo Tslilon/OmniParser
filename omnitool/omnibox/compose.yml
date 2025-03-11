@@ -14,7 +14,7 @@ services:
       - NET_ADMIN
     ports:
       - 8006:8006       # Web Viewer access
-      - 5000:5000       # Computer control server
+      - 5001:5000       # Computer control server
     volumes:
       - ./vm/win11iso/custom.iso:/custom.iso
       - ./vm/win11setup/firstboot:/oem

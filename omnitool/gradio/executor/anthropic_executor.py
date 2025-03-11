@@ -20,9 +20,10 @@ class AnthropicExecutor:
         self, 
         output_callback: Callable[[BetaContentBlockParam], None], 
         tool_output_callback: Callable[[Any, str], None],
+        windows_host_url: str = 'localhost:5000'
     ):
         self.tool_collection = ToolCollection(
-            ComputerTool()
+            ComputerTool(windows_host_url=windows_host_url)
         )
         self.output_callback = output_callback
         self.tool_output_callback = tool_output_callback
