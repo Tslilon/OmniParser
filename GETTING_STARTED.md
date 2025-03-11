@@ -58,7 +58,7 @@ First, you need to start the server on your Windows 11 VM that will receive comm
    python main.py --port 5000
    ```
 
-5. Verify the server is running by opening a browser on the Windows VM and navigating to `http://localhost:5000/probe/`
+5. Verify the server is running by opening a browser on the Windows VM and navigating to `http://localhost:5001/probe/`
 
 ### 2. Starting OmniParser on Mac
 

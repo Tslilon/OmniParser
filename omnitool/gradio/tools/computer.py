@@ -89,7 +89,7 @@ class ComputerTool(BaseAnthropicTool):
     def to_params(self) -> BetaToolComputerUse20241022Param:
         return {"name": self.name, "type": self.api_type, **self.options}
 
-    def __init__(self, is_scaling: bool = False, windows_host_url: str = 'localhost:5000'):
+    def __init__(self, is_scaling: bool = False, windows_host_url: str = 'localhost:5001'):
         super().__init__()
 
         # Store the Windows host URL

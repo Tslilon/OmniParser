@@ -49,7 +49,7 @@ def sampling_loop_sync(
     only_n_most_recent_images: int | None = 2,
     max_tokens: int = 4096,
     omniparser_url: str,
-    windows_host_url: str = 'localhost:5000'
+    windows_host_url: str = 'localhost:5001'
 ):
     """
     Synchronous agentic sampling loop for the assistant/tool interaction of computer use.

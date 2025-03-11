@@ -9,7 +9,7 @@ OUTPUT_DIR = "./tmp/outputs"
 class OmniParserClient:
     def __init__(self, 
                  url: str,
-                 windows_host_url: str = 'localhost:5000') -> None:
+                 windows_host_url: str = 'localhost:5001') -> None:
         self.url = url
         self.windows_host_url = windows_host_url
 
