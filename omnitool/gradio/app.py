@@ -48,11 +48,24 @@ Type a message and press submit to start OmniTool. Press stop to pause, and pres
 '''
 
 def parse_arguments():
-
     parser = argparse.ArgumentParser(description="Gradio App")
-    parser.add_argument("--windows_host_url", type=str, default='localhost:8006')
-    parser.add_argument("--omniparser_server_url", type=str, default="localhost:8000")
-    return parser.parse_args()
+    parser.add_argument("--windows_host_url", type=str, default='localhost:5000',
+                        help="Windows VM URL (API endpoint, e.g. 10.211.55.3:5000)")
+    parser.add_argument("--vnc_port", type=str, default='8006', 
+                        help="Port for NoVNC service (default: 8006)")
+    parser.add_argument("--omniparser_server_url", type=str, default="localhost:8000",
+                        help="OmniParser server URL")
+    args = parser.parse_args()
+    
+    # Extract IP from windows_host_url for VNC url
+    if ":" in args.windows_host_url:
+        vm_ip = args.windows_host_url.split(":")[0]
+        args.vnc_url = f"{vm_ip}:{args.vnc_port}"
+        print(f"API URL: {args.windows_host_url}, VNC URL: {args.vnc_url}")
+    else:
+        args.vnc_url = f"{args.windows_host_url}:{args.vnc_port}"
+        
+    return args
 args = parse_arguments()
 
 
@@ -372,7 +385,7 @@ with gr.Blocks(theme=gr.themes.Default()) as demo:
             chatbot = gr.Chatbot(label="Chatbot History", autoscroll=True, height=580)
         with gr.Column(scale=3):
             iframe = gr.HTML(
-                f'<iframe src="http://{args.windows_host_url}/vnc.html?view_only=1&autoconnect=1&resize=scale" width="100%" height="580" allow="fullscreen"></iframe>',
+                f'<iframe src="http://{args.vnc_url}/vnc.html?view_only=0&autoconnect=1&resize=scale&reconnect=true&password=1234" width="100%" height="580" allow="fullscreen"></iframe>',
                 container=False,
                 elem_classes="no-padding"
             )
