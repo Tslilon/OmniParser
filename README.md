@@ -78,8 +78,8 @@ OmniParser now supports accelerated processing on Apple Silicon Macs using Metal
 
 2. Or use the provided setup script which automatically configures MPS:
    ```bash
-   chmod +x start_hybrid_setup.sh
-   ./start_hybrid_setup.sh
+   chmod +x run_omniparser_ml.sh
+   ./run_omniparser_ml.sh
    ```
 
 For detailed instructions on setting up and running OmniParser with Windows VM integration, see [Getting Started Guide](GETTING_STARTED.md).
@@ -91,16 +91,13 @@ Use the included setup script to start all necessary services:
 
 ```bash
 # Make the script executable
-chmod +x start_hybrid_setup.sh
+chmod +x run_omniparser_ml.sh
 
 # Start with default settings (Windows VM at 10.211.55.3:5000)
-./start_hybrid_setup.sh
+./run_omniparser_ml.sh
 
 # Or specify custom Windows VM URL
-./start_hybrid_setup.sh 192.168.1.100:5000
-
-# Use simplified OmniParser (for troubleshooting ML issues)
-./start_hybrid_setup.sh 10.211.55.3:5000 localhost:8000 simple
+./run_omniparser_ml.sh 192.168.1.100:5000
 ```
 
 ### Windows VM Setup
@@ -139,3 +136,49 @@ If you find our work useful, please consider citing our work:
       url={https://arxiv.org/abs/2408.00203}, 
 }
 ```
+
+## Apple Silicon Compatibility
+
+When running OmniParser on Apple Silicon Macs (M1/M2/M3), there are specific considerations to ensure optimal performance:
+
+### Key Features
+
+1. **EasyOCR Integration**: 
+   - We've integrated EasyOCR as an alternative to PaddleOCR to avoid segmentation faults on Apple Silicon
+   - This provides stable OCR capabilities without compatibility issues
+
+2. **MPS Acceleration**:
+   - Metal Performance Shaders (MPS) acceleration for PyTorch is enabled by default
+   - This provides GPU acceleration for the icon detection and caption models
+
+3. **Streamlined Startup**:
+   - A dedicated script `run_omniparser_ml.sh` handles all the setup for Apple Silicon Macs
+   - This script automatically configures the environment and launches both the server and UI
+
+### Running on Apple Silicon
+
+To run OmniParser with full ML capabilities on Apple Silicon:
+
+```bash
+# Make the script executable
+chmod +x run_omniparser_ml.sh
+
+# Run with default Windows VM address (10.211.55.3:5000)
+./run_omniparser_ml.sh
+
+# Or specify a custom Windows VM address
+./run_omniparser_ml.sh 192.168.1.100:5000
+```
+
+This script:
+- Configures the environment for MPS acceleration
+- Launches the debug server with EasyOCR instead of PaddleOCR
+- Starts the Gradio UI and connects it to your Windows VM
+- Provides clean shutdown with Ctrl+C
+
+### Documentation
+
+For more detailed information:
+- See [APPLE_SILICON_NOTES.md](APPLE_SILICON_NOTES.md) for implementation details
+- See [docs/AppleSiliconFix.md](docs/AppleSiliconFix.md) for PaddleOCR-specific fixes (if needed)
+- See [GETTING_STARTED.md](GETTING_STARTED.md) for general setup instructions

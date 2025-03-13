@@ -89,10 +89,10 @@ To use OmniTool with your Windows VM for complete natural language control:
    cd /path/to/OmniParser
    
    # Make the script executable (if you haven't already)
-   chmod +x start_hybrid_setup.sh
+   chmod +x run_omniparser_ml.sh
    
    # Start with your Windows VM's IP address
-   ./start_hybrid_setup.sh 10.211.55.3:5000
+   ./run_omniparser_ml.sh 10.211.55.3:5000
    ```
 
 2. **Method 2: Manual Setup**
@@ -103,10 +103,7 @@ To use OmniTool with your Windows VM for complete natural language control:
    export OMNIPARSER_DEVICE="mps"
    
    # Start the OmniParser server
-   python -m omnitool.omniparserserver.omniparserserver \
-     --device $OMNIPARSER_DEVICE \
-     --som_model_path "$(pwd)/weights/icon_detect/model.pt" \
-     --caption_model_path "$(pwd)/weights/icon_caption_florence"
+   python debug_server.py
    ```
    
    b. In a new terminal, start the Gradio UI:
@@ -146,14 +143,13 @@ Try these examples to get started:
 - Check that the IP address is correct in your OmniTool startup command
 - Ensure no firewall is blocking port 5000 on the Windows VM
 
-### OmniParser ML Model Issues
+### Apple Silicon Compatibility
 
-If you encounter issues with the ML models:
+On Apple Silicon Macs, we use EasyOCR instead of PaddleOCR to avoid segmentation faults:
 
-```bash
-# Use the simplified OmniParser (no ML models, for testing)
-./start_hybrid_setup.sh 10.211.55.3:5000 localhost:8000 simple
-```
+1. The `run_omniparser_ml.sh` script automatically configures EasyOCR and MPS acceleration
+2. See `APPLE_SILICON_NOTES.md` for detailed information about our approach
+3. No additional setup is required
 
 ### Mac GPU Acceleration Issues
 
