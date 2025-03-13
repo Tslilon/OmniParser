@@ -120,6 +120,15 @@ def execute():
         data = request.json
         logger.debug(f"Execute data: {data}")
         
+        # Add this block to handle potential VNC conflicts
+        try:
+            # Force releasing any keys that might be held down by VNC
+            pyautogui.keyUp('alt')
+            pyautogui.keyUp('ctrl')
+            pyautogui.keyUp('shift')
+        except:
+            pass
+            
         action = data.get('action')
         
         if action == 'left_click':

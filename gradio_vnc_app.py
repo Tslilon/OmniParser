@@ -12,13 +12,13 @@ html_content = f"""
     <h2>OmniParser VNC Viewer</h2>
     <div style="width:100%; height:800px; border:1px solid #ddd;">
         <iframe 
-            src="http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234" 
+            src="http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234@view_only=1" 
             style="width:100%; height:100%; border:none;"
             allow="clipboard-read; clipboard-write"
         ></iframe>
     </div>
     <p>If the VNC viewer doesn't load, please ensure the VNC server and websockify are running.</p>
-    <p>Direct link: <a href="http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234" target="_blank">Open NoVNC in new window</a></p>
+    <p>Direct link: <a href="http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234&view_only=1" target="_blank">Open NoVNC in new window</a></p>
 </div>
 """
 

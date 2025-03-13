@@ -19,7 +19,7 @@ VM_IP = args.vm_ip
 API_PORT = args.api_port
 VNC_PORT = args.vnc_port
 API_URL = f"http://{VM_IP}:{API_PORT}"
-VNC_URL = f"http://{VM_IP}:{VNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234"
+VNC_URL = f"http://{VM_IP}:{VNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234&view_only=1"
 
 # App state
 APP_STATE = {

@@ -71,7 +71,7 @@ taskkill /F /IM "python.exe" /FI "WINDOWTITLE eq Websockify*" > nul 2>&1
 echo Starting Flask API on port 5000...
 start "Flask API" cmd /k "cd /d C:\omniserver && python main.py"
 
-:: Start websockify with CORRECT syntax
+:: Start websockify with improved settings
 echo Starting websockify bridge on port 8006...
 start "Websockify" cmd /k "python -m websockify 8006 localhost:5900 --web=C:\omniserver\novnc"
 
@@ -92,7 +92,7 @@ echo.
 echo Access URLs:
 echo  - Flask API: http://localhost:5000/probe
 echo  - Flask API Screenshot: http://localhost:5000/screenshot
-echo  - VNC Viewer: http://localhost:8006/vnc.html?autoconnect=true^&resize=scale^&reconnect=true
+echo  - VNC Viewer: http://localhost:8006/vnc.html?autoconnect=true^&resize=scale^&reconnect=true^&view_only=1
 echo.
 echo IMPORTANT: Keep this window open to maintain the services!
 echo.

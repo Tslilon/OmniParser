@@ -193,7 +193,7 @@ class VLMAgent:
         response_content = [BetaTextBlock(text=vlm_plan_str, type='text')]
         if 'box_centroid_coordinate' in vlm_response_json:
             move_cursor_block = BetaToolUseBlock(id=f'toolu_{uuid.uuid4()}',
-                                            input={'action': 'mouse_move', 'coordinate': vlm_response_json["box_centroid_coordinate"]},
+                                            input={'action': 'move', 'coordinate': vlm_response_json["box_centroid_coordinate"]},
                                             name='computer', type='tool_use')
             response_content.append(move_cursor_block)
 

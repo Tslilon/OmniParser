@@ -86,7 +86,7 @@ def main():
     
     if novnc_ok and novnc_ui_ok:
         print("✅ NoVNC is fully functional")
-        print(f"   NoVNC URL: http://{VM_IP}:{NOVNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234")
+        print(f"   NoVNC URL: http://{VM_IP}:{NOVNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234&view_only=1")
     elif novnc_ok:
         print("⚠️ NoVNC port is open but the UI is not available")
     else:
@@ -113,7 +113,7 @@ def main():
         try:
             answer = input("\nWould you like to open NoVNC in your browser? (y/n): ")
             if answer.lower() == 'y':
-                webbrowser.open(f"http://{VM_IP}:{NOVNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234")
+                webbrowser.open(f"http://{VM_IP}:{NOVNC_PORT}/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234&view_only=1")
                 print("Browser opened!")
         except:
             pass

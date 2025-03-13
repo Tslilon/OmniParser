@@ -8,7 +8,7 @@ from threading import Thread
 
 # Configuration - UPDATED with correct IP address
 VM_IP = "10.211.55.3"  # Windows VM IP address
-VNC_URL = f"http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234"
+VNC_URL = f"http://{VM_IP}:8006/vnc.html?autoconnect=true&resize=scale&reconnect=true&password=1234&view_only=1"
 API_URL = f"http://{VM_IP}:5000"
 VNC_PASSWORD = "1234"  # This should match the VNC server password
 

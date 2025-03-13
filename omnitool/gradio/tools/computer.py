@@ -21,7 +21,7 @@ TYPING_GROUP_SIZE = 50
 Action = Literal[
     "key",
     "type",
-    "mouse_move",
+    "move",
     "left_click",
     "left_click_drag",
     "right_click",
@@ -118,7 +118,12 @@ class ComputerTool(BaseAnthropicTool):
         **kwargs,
     ):
         print(f"action: {action}, text: {text}, coordinate: {coordinate}, is_scaling: {self.is_scaling}")
-        if action in ("mouse_move", "left_click_drag"):
+        
+        # Map mouse_move to move for backwards compatibility with any code still using mouse_move
+        if action == "mouse_move":
+            action = "move"
+            
+        if action in ("move", "left_click_drag"):
             if coordinate is None:
                 raise ToolError(f"coordinate is required for {action}")
             if text is not None:
@@ -136,21 +141,18 @@ class ComputerTool(BaseAnthropicTool):
             else:
                 x, y = coordinate
 
-            # print(f"scaled_coordinates: {x}, {y}")
-            # print(f"offset: {self.offset_x}, {self.offset_y}")
-            
-            # x += self.offset_x # TODO - check if this is needed
-            # y += self.offset_y
-
             print(f"mouse move to {x}, {y}")
             
-            if action == "mouse_move":
-                self.send_to_vm(f"pyautogui.moveTo({x}, {y})")
+            if action == "move":
+                # Use direct API format for the Windows VM
+                self.send_action_to_vm(action="move", x=x, y=y)
                 return ToolResult(output=f"Moved mouse to ({x}, {y})")
             elif action == "left_click_drag":
-                current_x, current_y = self.send_to_vm("pyautogui.position()")
+                # Get current position first
+                x_current, y_current = self.get_cursor_position()
+                # Then drag to the new position
                 self.send_to_vm(f"pyautogui.dragTo({x}, {y}, duration=0.5)")
-                return ToolResult(output=f"Dragged mouse from ({current_x}, {current_y}) to ({x}, {y})")
+                return ToolResult(output=f"Dragged mouse from ({x_current}, {y_current}) to ({x}, {y})")
 
         if action in ("key", "type"):
             if text is None:
@@ -198,18 +200,16 @@ class ComputerTool(BaseAnthropicTool):
             if action == "screenshot":
                 return await self.screenshot()
             elif action == "cursor_position":
-                x, y = self.send_to_vm("pyautogui.position()")
+                x, y = self.get_cursor_position()
                 x, y = self.scale_coordinates(ScalingSource.COMPUTER, x, y)
                 return ToolResult(output=f"X={x},Y={y}")
             else:
-                if action == "left_click":
-                    self.send_to_vm("pyautogui.click()")
-                elif action == "right_click":
-                    self.send_to_vm("pyautogui.rightClick()")
+                # Use direct API format for mouse actions
+                if action in ("left_click", "right_click", "double_click"):
+                    self.send_action_to_vm(action=action)
                 elif action == "middle_click":
+                    # Might not be directly supported, fallback to pyautogui
                     self.send_to_vm("pyautogui.middleClick()")
-                elif action == "double_click":
-                    self.send_to_vm("pyautogui.doubleClick()")
                 elif action == "left_press":
                     self.send_to_vm("pyautogui.mouseDown()")
                     time.sleep(1)
@@ -228,8 +228,48 @@ class ComputerTool(BaseAnthropicTool):
             return ToolResult(output=f"Performed {action}")
         raise ToolError(f"Invalid action: {action}")
 
+    def get_cursor_position(self):
+        """Get the current cursor position"""
+        try:
+            response = requests.get(
+                f"http://{self.windows_host_url}/info",
+                timeout=5
+            )
+            if response.status_code == 200:
+                # This assumes the info endpoint returns position information
+                # If not, you'll need to modify this
+                return 0, 0  # Default fallback
+            return 0, 0  # Default fallback
+        except:
+            return 0, 0  # Default fallback
+    
+    def send_action_to_vm(self, action, x=None, y=None):
+        """Send action to Windows VM using the correct API format"""
+        payload = {"action": action}
+        if x is not None and y is not None:
+            payload["x"] = x
+            payload["y"] = y
+            
+        try:
+            response = requests.post(
+                f"http://{self.windows_host_url}/execute",
+                headers={'Content-Type': 'application/json'},
+                json=payload,
+                timeout=10
+            )
+            if response.status_code != 200:
+                error_msg = f"An error occurred while sending action to VM: {response.status_code}"
+                print(error_msg)
+                return None, error_msg
+            
+            return response, None
+        except requests.exceptions.RequestException as e:
+            error_msg = f"An error occurred while sending action to VM: {str(e)}"
+            print(error_msg)
+            return None, error_msg
+            
     def send_to_vm(self, action: str):
-        """Send action to Windows VM"""
+        """Send action to Windows VM using PyAutoGUI command format (legacy method)"""
         try:
             response = requests.post(
                 f"http://{self.windows_host_url}/execute",
