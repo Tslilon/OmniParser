@@ -37,7 +37,17 @@ if curl -s "http://$WINDOWS_HOST_URL/probe" > /dev/null; then
   echo "✅ Windows VM server is running and accessible"
 else
   echo "⚠️ Warning: Windows VM server not responding at http://$WINDOWS_HOST_URL/probe"
-  echo "Make sure the server is running on your Windows VM"
+  echo "This may cause issues with capturing screenshots and controlling the VM."
+  echo "Make sure the server is running on your Windows VM."
+  
+  # Ask for confirmation to continue
+  read -p "Continue anyway? (y/n): " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  then
+    echo "Exiting setup. Please ensure the Windows VM server is running."
+    exit 1
+  fi
 fi
 
 # Ensure output directories exist

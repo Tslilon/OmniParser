@@ -76,6 +76,14 @@ class VLMAgent:
         screenshot_uuid = parsed_screen['screenshot_uuid']
         screen_width, screen_height = parsed_screen['width'], parsed_screen['height']
 
+        # Display the screenshots directly in the chat
+        screenshot_path = f"{OUTPUT_DIR}/screenshot_{screenshot_uuid}.png"
+        som_screenshot_path = f"{OUTPUT_DIR}/screenshot_som_{screenshot_uuid}.png"
+        
+        # Add the screenshots to the chat
+        self.output_callback(screenshot_path, sender="bot")
+        self.output_callback(som_screenshot_path, sender="bot")
+
         boxids_and_labels = parsed_screen["screen_info"]
         system = self._get_system_prompt(boxids_and_labels)
 
@@ -87,8 +95,8 @@ class VLMAgent:
         if isinstance(planner_messages[-1], dict):
             if not isinstance(planner_messages[-1]["content"], list):
                 planner_messages[-1]["content"] = [planner_messages[-1]["content"]]
-            planner_messages[-1]["content"].append(f"{OUTPUT_DIR}/screenshot_{screenshot_uuid}.png")
-            planner_messages[-1]["content"].append(f"{OUTPUT_DIR}/screenshot_som_{screenshot_uuid}.png")
+            planner_messages[-1]["content"].append(screenshot_path)
+            planner_messages[-1]["content"].append(som_screenshot_path)
 
         start = time.time()
         if "gpt" in self.model or "o1" in self.model or "o3-mini" in self.model:

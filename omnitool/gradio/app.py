@@ -163,6 +163,21 @@ def chatbot_output_callback(message, chatbot_state, hide_images=False, sender="b
         print(f"_render_message: {str(message)[:100]}")
         
         if isinstance(message, str):
+            # Check if the message is a file path to an image
+            if message and (message.startswith("./tmp/outputs/screenshot_") or message.startswith("tmp/outputs/screenshot_")) and message.endswith(".png"):
+                try:
+                    # Convert the file path to base64 for display
+                    with open(message, "rb") as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                        
+                    # Determine if this is a regular screenshot or SOM overlay
+                    if "screenshot_som_" in message:
+                        return f'<div style="margin: 10px 0;"><strong>Analysis Overlay:</strong></div><img src="data:image/png;base64,{img_data}" style="max-width: 100%; border: 1px solid #ccc;"/>'
+                    else:
+                        return f'<div style="margin-bottom: 10px;"><strong>Screenshot:</strong></div><img src="data:image/png;base64,{img_data}" style="max-width: 100%; border: 1px solid #ccc; margin-bottom: 10px;"/>'
+                except Exception as e:
+                    print(f"Error rendering image from path {message}: {e}")
+                    return f"[Error loading image: {message}]"
             return message
         
         is_tool_result = not isinstance(message, str) and (

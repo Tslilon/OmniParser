@@ -1,9 +1,11 @@
 from pathlib import Path
 from uuid import uuid4
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from .base import BaseAnthropicTool, ToolError
 from io import BytesIO
+import os
+import time
 
 OUTPUT_DIR = "./tmp/outputs"
 
@@ -15,15 +17,40 @@ def get_screenshot(resize: bool = False, target_width: int = 1920, target_height
     
     try:
         print(f"Attempting to capture screenshot from Windows VM at {windows_host_url}...")
-        response = requests.get(f'http://{windows_host_url}/screenshot')
-        if response.status_code != 200:
-            raise ToolError(f"Failed to capture screenshot: HTTP {response.status_code}")
         
-        screenshot = Image.open(BytesIO(response.content))
+        # Try to get screenshot from the API endpoint
+        try:
+            response = requests.get(f'http://{windows_host_url}/screenshot', timeout=5)
+            if response.status_code == 200:
+                screenshot = Image.open(BytesIO(response.content))
+                screenshot.save(path)
+                print(f"Screenshot captured successfully and saved to {path}")
+                return screenshot, path
+        except Exception as e:
+            print(f"Error capturing screenshot via API: {e}")
+            
+        # If API fails, create a placeholder image
+        print("Creating placeholder screenshot...")
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+        os.makedirs(assets_dir, exist_ok=True)
         
-        if resize and screenshot.size != (target_width, target_height):
-            screenshot = screenshot.resize((target_width, target_height))
-        screenshot.save(path)
-        return screenshot, path
+        # Create a simple placeholder image
+        img = Image.new('RGB', (target_width, target_height), color=(240, 240, 240))
+        draw = ImageDraw.Draw(img)
+        
+        # Add explanatory text
+        try:
+            # Try to use a standard font, if available
+            font = ImageFont.truetype("Arial", 24)
+        except IOError:
+            font = ImageFont.load_default()
+            
+        text = f"Screenshot service unavailable.\n\nCheck VM connection at {windows_host_url}"
+        draw.text((target_width//2, target_height//2), text, fill=(0, 0, 0), font=font, align="center", anchor="mm")
+        
+        img.save(path)
+        print(f"Placeholder image created and saved to {path}")
+        return img, path
+        
     except Exception as e:
         raise ToolError(f"Failed to capture screenshot: {str(e)}")
