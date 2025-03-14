@@ -1,5 +1,6 @@
 import requests
 import base64
+import time
 from pathlib import Path
 from tools.screen_capture import get_screenshot
 from agent.llm_utils.utils import encode_image
@@ -14,16 +15,32 @@ class OmniParserClient:
         self.windows_host_url = windows_host_url
 
     def __call__(self,):
+        # Get screenshot
+        screenshot_start = time.time()
         screenshot, screenshot_path = get_screenshot(windows_host_url=self.windows_host_url)
         screenshot_path = str(screenshot_path)
+        screenshot_time = time.time() - screenshot_start
+        
+        # Encode image
+        encode_start = time.time()
         image_base64 = encode_image(screenshot_path)
+        encode_time = time.time() - encode_start
+        
+        # Make API request to OmniParser server
+        api_start = time.time()
         response = requests.post(self.url, json={"base64_image": image_base64})
+        api_time = time.time() - api_start
+        
+        # Process response
+        process_start = time.time()
         response_json = response.json()
         
         # Print latency if available
         if 'latency' in response_json:
-            print('omniparser latency:', response_json['latency'])
+            omniparser_latency = response_json['latency']
+            print('omniparser latency:', omniparser_latency)
         else:
+            omniparser_latency = -1
             print('omniparser latency: not available')
 
         # Handle missing som_image_base64 (might happen with simplified server)
@@ -49,6 +66,18 @@ class OmniParserClient:
             
         # Reformat messages
         response_json = self.reformat_messages(response_json)
+        
+        process_time = time.time() - process_start
+        total_time = time.time() - screenshot_start
+        
+        # Print performance metrics
+        print(f"⏱️ PERF: OmniParser client breakdown:")
+        print(f"⏱️ PERF:   - Encoding: {encode_time:.2f}s")
+        print(f"⏱️ PERF:   - API request: {api_time:.2f}s")
+        print(f"⏱️ PERF:   - Server processing: {omniparser_latency:.2f}s")
+        print(f"⏱️ PERF:   - Response processing: {process_time:.2f}s")
+        print(f"⏱️ PERF:   - Total (excluding screenshot): {total_time - screenshot_time:.2f}s")
+        
         return response_json
     
     def reformat_messages(self, response_json: dict):

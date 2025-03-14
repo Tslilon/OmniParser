@@ -4,6 +4,7 @@ python app.py --windows_host_url localhost:8006 --omniparser_server_url localhos
 
 import os
 from datetime import datetime
+import time  # Ensure time is imported
 from enum import StrEnum
 from functools import partial
 from pathlib import Path
@@ -22,6 +23,22 @@ from tools import ToolResult
 import requests
 from requests.exceptions import RequestException
 import base64
+
+# Performance tracking dictionary
+perf_metrics = {
+    'screenshot_times': [],
+    'omniparser_times': [],
+    'llm_times': [],
+    'action_times': [],
+    'total_times': []
+}
+
+# Performance logging function
+def log_perf(operation, duration):
+    """Log performance metrics for a specific operation"""
+    print(f"⏱️ PERF: {operation}: {duration:.2f}s")
+    if operation in perf_metrics:
+        perf_metrics[operation].append(duration)
 
 # Load API key from .env file in project root
 try:
@@ -155,9 +172,33 @@ def _api_response_callback(response: APIResponse[BetaMessage], response_state: d
     response_state[response_id] = response
 
 def _tool_output_callback(tool_output: ToolResult, tool_id: str, tool_state: dict):
+    # Track timing for actions
+    start_time = getattr(tool_output, 'start_time', None)
+    if start_time:
+        action_time = time.time() - start_time
+        log_perf('action_times', action_time)
     tool_state[tool_id] = tool_output
 
 def chatbot_output_callback(message, chatbot_state, hide_images=False, sender="bot"):
+    # Track OmniParser and LLM times from the message
+    if isinstance(message, str) and "LLM:" in message and "OmniParser:" in message:
+        try:
+            # Extract timing information
+            llm_time = float(message.split("LLM: ")[1].split("s")[0])
+            omniparser_time = float(message.split("OmniParser: ")[1].split("s")[0])
+            log_perf('llm_times', llm_time)
+            log_perf('omniparser_times', omniparser_time)
+        except Exception as e:
+            print(f"Error extracting timing info: {e}")
+    
+    # Track screenshot capture time
+    if isinstance(message, str) and message.startswith("./tmp/outputs/screenshot_"):
+        # This is called right after a screenshot is captured
+        if hasattr(chatbot_state, 'screenshot_start_time') and chatbot_state.screenshot_start_time:
+            screenshot_time = time.time() - chatbot_state.screenshot_start_time
+            log_perf('screenshot_times', screenshot_time)
+            chatbot_state.screenshot_start_time = None
+    
     def _render_message(message: str | BetaTextBlock | BetaToolUseBlock | ToolResult, hide_images=False):
     
         print(f"_render_message: {str(message)[:100]}")
@@ -214,6 +255,9 @@ def chatbot_output_callback(message, chatbot_state, hide_images=False, sender="b
         elif isinstance(message, BetaTextBlock) or isinstance(message, TextBlock):
             return f"Analysis: {message.text}"
         elif isinstance(message, BetaToolUseBlock) or isinstance(message, ToolUseBlock):
+            # Track start time for action execution
+            if hasattr(chatbot_state, 'action_start_time'):
+                chatbot_state.action_start_time = time.time()
             # return f"Tool Use: {message.name}\nInput: {message.input}"
             return f"Next I will perform the following action: {message.input}"
         else:  
@@ -267,6 +311,9 @@ def process_input(user_input, state):
     if errors:
         raise gr.Error("Validation errors: " + ", ".join(errors))
     
+    # Start total time tracking
+    total_start_time = time.time()
+    
     # Append the user message to state["messages"]
     state["messages"].append(
         {
@@ -297,6 +344,21 @@ def process_input(user_input, state):
         windows_host_url=args.windows_host_url
     ):  
         if loop_msg is None or state.get("stop"):
+            # Calculate and log total task time
+            total_time = time.time() - total_start_time
+            log_perf('total_times', total_time)
+            print(f"⏱️ PERF SUMMARY: Total task time: {total_time:.2f}s")
+            
+            # Print averages if we have multiple measurements
+            if len(perf_metrics['screenshot_times']) > 0:
+                print(f"⏱️ PERF AVG: Screenshot: {sum(perf_metrics['screenshot_times'])/len(perf_metrics['screenshot_times']):.2f}s")
+            if len(perf_metrics['omniparser_times']) > 0:
+                print(f"⏱️ PERF AVG: OmniParser: {sum(perf_metrics['omniparser_times'])/len(perf_metrics['omniparser_times']):.2f}s")
+            if len(perf_metrics['llm_times']) > 0:
+                print(f"⏱️ PERF AVG: LLM: {sum(perf_metrics['llm_times'])/len(perf_metrics['llm_times']):.2f}s")
+            if len(perf_metrics['action_times']) > 0:
+                print(f"⏱️ PERF AVG: Actions: {sum(perf_metrics['action_times'])/len(perf_metrics['action_times']):.2f}s")
+            
             yield state['chatbot_messages']
             print("End of task. Close the loop.")
             break

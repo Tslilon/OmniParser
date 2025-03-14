@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import traceback
+import psutil
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -26,11 +27,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger("omniparser_debug")
 
+# Function to log memory usage
+def log_memory_usage(label=""):
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    memory_mb = memory_info.rss / (1024 * 1024)
+    logger.info(f"Memory usage {label}: {memory_mb:.2f} MB")
+    return memory_mb
+
 # Print diagnostics
 logger.info(f"Python version: {sys.version}")
 logger.info(f"PyTorch version: {torch.__version__}")
 logger.info(f"MPS available: {torch.backends.mps.is_available()}")
 logger.info(f"Current directory: {os.getcwd()}")
+log_memory_usage("at startup")
 
 # Create FastAPI app with middleware
 app = FastAPI(title="Debug OmniParser Server")
@@ -81,6 +91,20 @@ try:
     omniparser = Omniparser(config)
     logger.info(f"OmniParser initialized in {time.time() - start_time:.2f} seconds")
     
+    # After initialization
+    if hasattr(omniparser, 'som_model'):
+        device = next(omniparser.som_model.parameters()).device
+        logger.info(f"SOM model is running on device: {device}")
+    
+    if hasattr(omniparser, 'caption_model'):
+        try:
+            device = next(omniparser.caption_model.parameters()).device
+            logger.info(f"Caption model is running on device: {device}")
+        except:
+            logger.info("Could not determine caption model device")
+    
+    log_memory_usage("after initialization")
+    
 except Exception as e:
     logger.error(f"OmniParser initialization failed: {str(e)}")
     logger.error(traceback.format_exc())
@@ -106,19 +130,37 @@ async def parse(parse_request: ParseRequest):
     try:
         logger.info('Start parsing...')
         start = time.time()
+        memory_before = log_memory_usage("before parsing")
         
         if omniparser is None:
             return {"error": "OmniParser was not properly initialized"}
         
-        # Parse the image
+        # Parse the image with timing for each major step
         dino_labled_img, parsed_content_list = omniparser.parse(parse_request.base64_image)
         latency = time.time() - start
+        memory_after = log_memory_usage("after parsing")
+        memory_increase = memory_after - memory_before
+        
         logger.info(f'Parsing completed in {latency:.2f} seconds')
+        logger.info(f'Memory increased by {memory_increase:.2f} MB during parsing')
+        
+        # Track memory leak potential by forcing garbage collection and measuring again
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        if hasattr(torch.mps, 'empty_cache'):
+            torch.mps.empty_cache()
+        memory_after_gc = log_memory_usage("after garbage collection")
+        memory_retained = memory_after_gc - memory_before
+        
+        logger.info(f'Memory retained after GC: {memory_retained:.2f} MB (potential leak: {memory_retained > 10})')
         
         return {
             "som_image_base64": dino_labled_img, 
             "parsed_content_list": parsed_content_list,
             "latency": latency,
+            "memory_usage_mb": memory_after,
+            "memory_increase_mb": memory_increase,
             "status": "success"
         }
     except Exception as e:

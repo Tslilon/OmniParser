@@ -1,0 +1,21 @@
+2025-03-14 15:18:55,323 - omniparser_debug - INFO - Python version: 3.11.6 (main, Jan 13 2025, 16:01:31) [Clang 16.0.0 (clang-1600.0.26.6)]
+2025-03-14 15:18:55,324 - omniparser_debug - INFO - PyTorch version: 2.6.0
+2025-03-14 15:18:55,332 - omniparser_debug - INFO - MPS available: True
+2025-03-14 15:18:55,332 - omniparser_debug - INFO - Current directory: /Users/tslil/code/omniparser/OmniParser
+2025-03-14 15:18:55,332 - omniparser_debug - INFO - Memory usage at startup: 202.59 MB
+2025-03-14 15:18:55,547 - matplotlib - DEBUG - matplotlib data path: /Users/tslil/code/omniparser/OmniParser/venv/lib/python3.11/site-packages/matplotlib/mpl-data
+2025-03-14 15:18:55,549 - matplotlib - DEBUG - CONFIGDIR=/Users/tslil/.matplotlib
+2025-03-14 15:18:55,550 - matplotlib - DEBUG - interactive is False
+2025-03-14 15:18:55,550 - matplotlib - DEBUG - platform is darwin
+2025-03-14 15:18:55,572 - matplotlib - DEBUG - CACHEDIR=/Users/tslil/.matplotlib
+2025-03-14 15:18:55,574 - matplotlib.font_manager - DEBUG - Using fontManager instance from /Users/tslil/.matplotlib/fontlist-v390.json
+Florence2LanguageForConditionalGeneration has generative capabilities, as `prepare_inputs_for_generation` is explicitly overwritten. However, it doesn't directly inherit from `GenerationMixin`. From 👉v4.50👈 onwards, `PreTrainedModel` will NOT inherit from `GenerationMixin`, and this model will lose the ability to call `generate` and other related functions.
+  - If you're using `trust_remote_code=True`, you can get rid of this warning by loading the model with an auto class. See https://huggingface.co/docs/transformers/en/model_doc/auto#auto-classes
+  - If you are the owner of the model architecture code, please modify your model class such that it inherits from `GenerationMixin` (after `PreTrainedModel`, otherwise you'll get an exception).
+  - If you are not the owner of the model architecture class, please contact the model code owner to update it.
+PaddleOCR will use GPU: True
+Omniparser initialized!!!
+INFO:     Started server process [80614]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
