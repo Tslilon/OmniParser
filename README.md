@@ -182,3 +182,10 @@ For more detailed information:
 - See [APPLE_SILICON_NOTES.md](APPLE_SILICON_NOTES.md) for implementation details
 - See [docs/AppleSiliconFix.md](docs/AppleSiliconFix.md) for PaddleOCR-specific fixes (if needed)
 - See [GETTING_STARTED.md](GETTING_STARTED.md) for general setup instructions
+
+## Documentation
+
+- [Getting Started](GETTING_STARTED.md) - Installation and basic usage
+- [Apple Silicon Notes](APPLE_SILICON_NOTES.md) - Specific notes for M1/M2 Macs
+- [Testing and Performance](TESTING_AND_PERFORMANCE.md) - Testing tools and performance optimization
+- [Security](SECURITY.md) - Security guidelines and best practices

@@ -9,10 +9,11 @@ import traceback
 import sys
 import platform
 import time
+import subprocess
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Change to DEBUG for more verbose logging
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('C:\\omniserver\\server.log'),
@@ -50,6 +51,24 @@ def info():
         },
         'platform': platform.platform(),
         'python_version': sys.version
+    })
+
+@app.route('/screensize', methods=['GET'])
+def screensize():
+    """Return screen dimensions - dedicated endpoint for clients"""
+    logger.info("Screensize endpoint called")
+    try:
+        screen_width, screen_height = pyautogui.size()
+        logger.info(f"Successfully retrieved screen size: {screen_width}x{screen_height}")
+    except Exception as e:
+        logger.warning(f"Failed to get screen size: {str(e)}")
+        logger.warning(traceback.format_exc())
+        screen_width, screen_height = 1920, 1080
+        logger.info(f"Using default screen size: {screen_width}x{screen_height}")
+    
+    return jsonify({
+        'width': screen_width,
+        'height': screen_height
     })
 
 @app.route('/screenshot', methods=['GET'])
@@ -117,8 +136,45 @@ def execute():
     """Execute mouse or keyboard actions"""
     try:
         logger.info("Execute endpoint called")
-        data = request.json
-        logger.debug(f"Execute data: {data}")
+        
+        # Debug: Log raw request data
+        logger.debug(f"Request data type: {type(request.data)}")
+        logger.debug(f"Raw request data: {request.data}")
+        
+        # Debug: Log parsed JSON
+        try:
+            data = request.json
+            logger.debug(f"Parsed JSON data: {data}")
+        except Exception as json_error:
+            logger.error(f"Failed to parse JSON: {str(json_error)}")
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        # Handle Python command execution
+        if 'command' in data:
+            cmd = data.get('command')
+            logger.info(f"Executing command: {cmd}")
+            
+            try:
+                # Debug: Log command details
+                logger.debug(f"Command type: {type(cmd)}")
+                if isinstance(cmd, list):
+                    logger.debug(f"Command list items: {len(cmd)}")
+                    for i, item in enumerate(cmd):
+                        logger.debug(f"  Item {i}: {item} (type: {type(item)})")
+                
+                # Execute the command
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                
+                # Debug: Log command results
+                logger.debug(f"Command stdout: {result.stdout}")
+                logger.debug(f"Command stderr: {result.stderr}")
+                logger.debug(f"Command return code: {result.returncode}")
+                
+                return jsonify({'output': result.stdout, 'error': result.stderr})
+            except Exception as cmd_error:
+                logger.error(f"Command execution failed: {str(cmd_error)}")
+                logger.error(traceback.format_exc())
+                return jsonify({'error': f'Command execution failed: {str(cmd_error)}'}), 500
         
         # Add this block to handle potential VNC conflicts
         try:
@@ -168,9 +224,11 @@ def execute():
         elif action == 'move':
             x = data.get('x')
             y = data.get('y')
+            # Hardcode the duration for smooth movement (in seconds)
+            duration = 0.5  # Fixed smooth movement duration
             if x is not None and y is not None:
-                logger.info(f"Moving to position ({x}, {y})")
-                pyautogui.moveTo(x=x, y=y)
+                logger.info(f"Moving to position ({x}, {y}) with duration {duration}s")
+                pyautogui.moveTo(x=x, y=y, duration=duration)
             return jsonify({'status': 'success', 'action': 'move'})
             
         elif action == 'type':
@@ -205,6 +263,33 @@ def execute():
         logger.error(f"Execute endpoint failed: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+@app.route('/debug-command', methods=['GET'])
+def debug_command():
+    """Debug endpoint to test command execution"""
+    logger.info("Debug command endpoint called")
+    try:
+        # Execute a simple command to get screen size
+        result = subprocess.run(
+            ["python", "-c", "import pyautogui; print(pyautogui.size())"], 
+            capture_output=True, 
+            text=True
+        )
+        
+        # Log results
+        logger.info(f"Command test stdout: {result.stdout}")
+        logger.info(f"Command test stderr: {result.stderr}")
+        logger.info(f"Command test return code: {result.returncode}")
+        
+        return jsonify({
+            'stdout': result.stdout,
+            'stderr': result.stderr,
+            'returncode': result.returncode
+        })
+    except Exception as e:
+        logger.error(f"Debug command failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     logger.info("Starting Flask server on port 5000...")

@@ -88,9 +88,15 @@ def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2
 
 
 def get_yolo_model(model_path):
+    """Load and configure YOLO model"""
     from ultralytics import YOLO
-    # Load the model.
+    # Load the model
     model = YOLO(model_path)
+    # Set model parameters for better performance
+    model.overrides['conf'] = 0.25  # NMS confidence threshold
+    model.overrides['iou'] = 0.45   # NMS IoU threshold
+    model.overrides['agnostic_nms'] = False  # NMS class-agnostic
+    model.overrides['max_det'] = 300  # maximum number of detections per image
     return model
 
 
